@@ -38,6 +38,20 @@
 <div class="row mb-3 justify-content-center align-item-center">
     <p class="fw-bold fs-4 text-decoration-underline">Daily Rejection :</p>
     <div class="col-12">
+        {{-- <ul class="ms-3 fs-5 fw-bold">
+            <table>
+                <tr>
+                    <td>Mean Prodution &ensp;</td>
+                    <td>: &ensp;</td>
+                    <td>{{$meanReport}} Pcs.</td>
+                </tr>
+                <tr>
+                    <td>Mean Rejection &ensp;</td>
+                    <td>: &ensp;</td>
+                    <td>{{$meanReject}} Pcs.</td>
+                </tr>
+            </table>
+        </ul> --}}
         <div class="table-responsive">
             <table id="Table_DailyRejection" class="table table-striped-columns table-hover table-bordered nowrap display w-100" style="overflow-x: scroll">
                 <thead class="table-danger">

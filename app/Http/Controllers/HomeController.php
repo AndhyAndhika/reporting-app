@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Part;
 use App\Models\ReportDaily;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
 
 class HomeController extends Controller
@@ -27,9 +28,12 @@ class HomeController extends Controller
     public function index(Request $request)
     {
         $part = Part::all();
-        $dateNow = now()->format('Y-m-d');
 
-        $data = ReportDaily::with(['toParts', 'toRejects'])->where('rejects_id', '!=', null)->whereDate('created_at', $dateNow)->get();
+        /* ROCK Algoritma  */
+        $dateNow = now()->format('Y-m-d');
+        // $dateNow = "2024-06-30";
+
+        $data = ReportDaily::with(['toParts', 'toRejects'])->where('rejects_id', '!=', null)->whereDate('report_date', $dateNow)->get();
 
         $summary = [];
         $totals = [];
@@ -64,6 +68,17 @@ class HomeController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         }
-        return view('home', compact('part'));
+
+        /* Distribution Algoritma */
+        $dataMeanReport = ReportDaily::select(DB::raw('DATE(report_date) as date'), DB::raw('SUM(total_production) as total_production_sum'))
+        ->where('total_production', '!=', null)
+        ->whereDate('report_date', $dateNow)->first();
+
+        $meanReport = $dataMeanReport->total_production_sum;
+        $meanReject = 0;
+        foreach ($summary as $item) {
+            $meanReject += $item['qty'];
+        }
+        return view('home', compact('part', 'meanReport', 'meanReject'));
     }
 }

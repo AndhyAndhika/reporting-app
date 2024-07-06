@@ -47,6 +47,31 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-12">
+                        <table class="fs-5 fw-bold mb-2">
+                            <tr>
+                                <td>Day's Filtered &ensp;</td>
+                                <td>: &ensp;</td>
+                                <td><span id="filteredDays">0</span> day's.</td>
+
+                                <td>&ensp;&ensp;&ensp;&ensp;&ensp;</td>
+
+                                <td>Mean Prodution &ensp;</td>
+                                <td>: &ensp;</td>
+                                <td><span id="MeanProduction">0</span> Pcs.</td>
+
+                                <td>&ensp;&ensp;&ensp;&ensp;&ensp;</td>
+
+                                {{-- <td>Mean Rejection &ensp;</td>
+                                <td>: &ensp;</td>
+                                <td><span id="MeanRejection">0</span> Pcs.</td> --}}
+
+                                <td>&ensp;&ensp;&ensp;&ensp;&ensp;</td>
+
+                                <td>Standard Deviation &ensp;</td>
+                                <td>: &ensp;</td>
+                                <td><span id="standartDeviation">0</span> Pcs.</td>
+                            </tr>
+                        </table>
                         <div class="table-responsive">
                             <table id="Table_DetailsReport" class="table table-striped-columns table-hover table-bordered nowrap display w-100" style="overflow-x: scroll">
                                 <thead class="table-info">
@@ -135,6 +160,16 @@
         var startDate = $('#startDate').val();
         var endDate = $('#endDate').val();
         var getPart = $("#part_name").val();
+        /* Konversi nilai ke objek Date */
+        var start = new Date(startDate);
+        var end = new Date(endDate);
+        var timeDiff = end - start;
+        var dayDiff = timeDiff / (1000 * 60 * 60 * 24);
+
+        var filteredDays = $("#filteredDays").html(dayDiff);
+        var MeanProduction =  $("#MeanProduction").html("0");
+        // var MeanRejection =  $("#MeanRejection").html("0");
+        var standartDeviation =  $("#standartDeviation").html("0");
         var result = getPart.split('|')
         var namaPart =  result[1];
         var namaPart_id =  result[0];
@@ -147,6 +182,50 @@
         $('#endDate_fromfilter, #endDate_fromfilter1').html(endDate);
         $('#part_fromfilter, #part_fromfilter1').html(`On ${namaPart}`);
 
+        /* get mean, and deviation */
+        const getMean = () => {
+            start = new Date(startDate);
+            end = new Date(endDate);
+            timeDiff = end - start;
+            dayDiff = timeDiff / (1000 * 60 * 60 * 24);
+            $("#filteredDays").html(dayDiff);
+
+            $.ajax({
+                dataType: "json",
+                url: "{{ route('reporting.datatables_report') }}" + `?startDate=${startDate}&endDate=${endDate}&namaPart=${namaPart_id}`,
+                success: function (res) {
+                    console.log(res.data)
+                    /* filter data and get just total production */
+                    const totalProductionEntries = res.data.filter(entry => entry.name_reject === "Total Production");
+
+                    if (totalProductionEntries.length === 0) {
+                        $("#MeanProduction").html(0);
+                        $("#standartDeviation").html(0);
+                        return;
+                    }
+
+                    const qtyValues = totalProductionEntries.map(entry => entry.qty);
+                    const sumQty = qtyValues.reduce((sum, qty) => sum + qty, 0);
+
+                    /* Pilih salah satu dibawah ini buat ambil meannya */
+                    // const meanQty = sumQty / dayDiff; /* ini kalo berdasarkan hari */
+                    const meanQty = sumQty / qtyValues.length; /* ini kalo berdasarkan jumlah data */
+                    $("#MeanProduction").html(meanQty.toFixed(2));
+
+                    /* standart deviation */
+                    const squaredDeviations = qtyValues.map(qty => Math.pow(qty - meanQty, 2));
+                    const sumSquaredDeviations = squaredDeviations.reduce((sum, sqDev) => sum + sqDev, 0);
+                    const variance = sumSquaredDeviations / (qtyValues.length - 1);
+                    const standardDeviation = Math.sqrt(variance);
+
+                    $("#standartDeviation").html(standardDeviation.toFixed(2))
+                    // console.log("Mean for 'Total Production' qty:", meanQty.toFixed(2));
+                    // console.log("Standard Deviation for 'Total Production' qty:", standardDeviation.toFixed(2));
+
+                }
+            });
+        }
+        getMean();
         /* filter Data */
         const FilterData = () => {
             event.preventDefault();
@@ -157,14 +236,17 @@
             namaPart =  result[1];
             namaPart_id =  result[0];
 
+
             var link = "{{ route('reporting.datatables_report') }}" + `?startDate=${startDate}&endDate=${endDate}&namaPart=${namaPart_id}`;
             Table_DetailsReport.ajax.url(link).load();
+
 
             $('#startDate_fromfilter, #startDate_fromfilter1').html(startDate);
             $('#endDate_fromfilter, #endDate_fromfilter1').html(endDate);
             $('#part_fromfilter, #part_fromfilter1').html(`On ${namaPart}`);
             updateChartPPM();
             updateChartProduction();
+            getMean();
         }
 
         /* to update data Chart*/
@@ -185,13 +267,11 @@
                 dataType: "json",
                 url: "{{ route('reporting.chart_line') }}" + `?startDate=${startDate}&endDate=${endDate}&namaPart=${namaPart_id}`,
                 success: function (res) {
-                    console.log(res)
                     chartPPM.data = res.data; // Update the chartStacked data
                     chartPPM.update();
                 }
             });
         }
-
 
         /* Chart stacked production */
         const createChartStacked = (dataStacked) => {
