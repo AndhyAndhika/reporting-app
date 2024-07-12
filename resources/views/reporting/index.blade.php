@@ -49,7 +49,7 @@
                     <div class="col-12">
                         <table class="fs-5 fw-bold mb-2">
                             <tr>
-                                <td>Day's Filtered &ensp;</td>
+                                <td>Filtered &ensp;</td>
                                 <td>: &ensp;</td>
                                 <td><span id="filteredDays">0</span> day's.</td>
 
@@ -70,6 +70,24 @@
                                 <td>Standard Deviation &ensp;</td>
                                 <td>: &ensp;</td>
                                 <td><span id="standartDeviation">0</span> Pcs.</td>
+                            </tr>
+                            <tr>
+                                <td>&ensp;</td>
+                                <td>&ensp;</td>
+                                <td>&ensp;</td>
+
+                                <td>&ensp;&ensp;&ensp;&ensp;&ensp;</td>
+
+                                <td>Mean NG &ensp;</td>
+                                <td>: &ensp;</td>
+                                <td><span id="MeanNG">0</span> Pcs.</td>
+
+                                <td>&ensp;&ensp;&ensp;&ensp;&ensp;</td>
+                                <td>&ensp;&ensp;&ensp;&ensp;&ensp;</td>
+
+                                <td>Standard Deviation NG &ensp;</td>
+                                <td>: &ensp;</td>
+                                <td><span id="standartDeviationNG">0</span> Pcs.</td>
                             </tr>
                         </table>
                         <div class="table-responsive">
@@ -168,8 +186,10 @@
 
         var filteredDays = $("#filteredDays").html(dayDiff);
         var MeanProduction =  $("#MeanProduction").html("0");
+        var MeanNG =  $("#MeanNG").html("0");
         // var MeanRejection =  $("#MeanRejection").html("0");
         var standartDeviation =  $("#standartDeviation").html("0");
+        var standartDeviationNG =  $("#standartDeviationNG").html("0");
         var result = getPart.split('|')
         var namaPart =  result[1];
         var namaPart_id =  result[0];
@@ -197,20 +217,18 @@
                     console.log(res.data)
                     /* filter data and get just total production */
                     const totalProductionEntries = res.data.filter(entry => entry.name_reject === "Total Production");
-
                     if (totalProductionEntries.length === 0) {
                         $("#MeanProduction").html(0);
                         $("#standartDeviation").html(0);
                         return;
                     }
-
                     const qtyValues = totalProductionEntries.map(entry => entry.qty);
                     const sumQty = qtyValues.reduce((sum, qty) => sum + qty, 0);
 
                     /* Pilih salah satu dibawah ini buat ambil meannya */
                     // const meanQty = sumQty / dayDiff; /* ini kalo berdasarkan hari */
                     const meanQty = sumQty / qtyValues.length; /* ini kalo berdasarkan jumlah data */
-                    $("#MeanProduction").html(meanQty.toFixed(2));
+
 
                     /* standart deviation */
                     const squaredDeviations = qtyValues.map(qty => Math.pow(qty - meanQty, 2));
@@ -218,9 +236,31 @@
                     const variance = sumSquaredDeviations / (qtyValues.length - 1);
                     const standardDeviation = Math.sqrt(variance);
 
+                    /* Munculkan di web */
+                    $("#MeanProduction").html(meanQty.toFixed(2));
                     $("#standartDeviation").html(standardDeviation.toFixed(2))
-                    // console.log("Mean for 'Total Production' qty:", meanQty.toFixed(2));
-                    // console.log("Standard Deviation for 'Total Production' qty:", standardDeviation.toFixed(2));
+
+                    /* Standart deviasi untuk NG */
+                    const totalNGEntries = res.data.filter(entry => entry.name_reject !== "Total Production");
+                    if (totalProductionEntries.length === 0) {
+                        $("#MeanNG").html(0);
+                        $("#standartDeviationNG").html(0);
+                        return;
+                    }
+                    const qtyValuesNG = totalNGEntries.map(entry => entry.qty);
+                    const sumQtyNG = qtyValuesNG.reduce((sum, qty) => sum + qty, 0);
+
+                    /* Pilih salah satu dibawah ini buat ambil meannya */
+                    // const meanQtyNG = sumQtyNG / dayDiff; /* ini kalo berdasarkan hari */
+                    const meanQtyNG = sumQtyNG / qtyValuesNG.length; /* ini kalo berdasarkan jumlah data */
+
+                    /* standart deviation */
+                    const squaredDeviationsNG = qtyValuesNG.map(qty => Math.pow(qty - meanQtyNG, 2));
+                    const sumSquaredDeviationsNG = squaredDeviationsNG.reduce((sum, sqDev) => sum + sqDev, 0);
+                    const varianceNG = sumSquaredDeviationsNG / (qtyValuesNG.length - 1);
+                    const standardDeviationNG = Math.sqrt(varianceNG);
+                    $("#MeanNG").html(meanQtyNG.toFixed(2));
+                    $("#standartDeviationNG").html(standardDeviationNG.toFixed(2))
 
                 }
             });
